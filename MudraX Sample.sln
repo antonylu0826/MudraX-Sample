@@ -11,6 +11,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MauiApp", "MauiApp\MauiApp.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JwtOData", "JwtOData\JwtOData.csproj", "{FF2A0CCF-601F-EF87-179D-A4123757F077}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "方案項目", "方案項目", "{8DDC4786-5FC8-F15C-1CA5-9F41FD4BEB75}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+		screenshot.png = screenshot.png
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +38,7 @@ Global
 		{0AC5E640-BA6C-4DCC-AD4E-E8DDDCCAC309}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5B3FE305-E74B-4449-916F-9D7DD879905F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5B3FE305-E74B-4449-916F-9D7DD879905F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B3FE305-E74B-4449-916F-9D7DD879905F}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
 		{5B3FE305-E74B-4449-916F-9D7DD879905F}.EasyTest|Any CPU.ActiveCfg = Release|Any CPU
 		{5B3FE305-E74B-4449-916F-9D7DD879905F}.EasyTest|Any CPU.Build.0 = Release|Any CPU
 		{5B3FE305-E74B-4449-916F-9D7DD879905F}.Release|Any CPU.ActiveCfg = Release|Any CPU
