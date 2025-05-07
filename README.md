@@ -1,5 +1,7 @@
 # MudraX Sample
 
+![alt text](https://github.com/antonylu0826/MudraX-Sample/blob/master/screenshot.png)
+
 This solution is a multi-project setup that includes a .NET MAUI application, a Blazor application, and an ASP.NET Core Web API. It leverages modern .NET 9 features and integrates with MudBlazor for UI components and DevExpress XAF for backend services.
 
 ## Projects
