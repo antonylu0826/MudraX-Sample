@@ -39,7 +39,6 @@ This solution is a multi-project setup that includes a .NET MAUI application, a 
 ### Prerequisites
 - .NET 9 SDK
 - Visual Studio 2022 or later
-- Node.js (if required for frontend builds)
 
 ### Build and Run
 1. Clone the repository.
