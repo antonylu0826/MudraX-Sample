@@ -1,0 +1,86 @@
+﻿@page "/booleanproperties"
+
+<PageHeader Icon="@Icons.Material.Filled.CheckBox" HeaderText="Boolean Properties" />
+
+<TableView @ref=table
+           TModel="BooleanProperty"
+           OnTableViewLoadData="DataLoad"
+           OnAddNew="HandleAddNew"
+           OnDelete="HandleDelete"
+           OnRowClick="HandleRowClick">
+    <TableColumns>
+
+        <PropertyColumn Property="(BooleanProperty x) => x.DefaultBooleanProperty" />
+
+        <PropertyColumn Property="(BooleanProperty x) => x.BooleanWithCaptions">
+            <CellTemplate>
+                <MudCheckBox @bind-Value="@context.Item.BooleanWithCaptions" ReadOnly />
+            </CellTemplate>
+        </PropertyColumn>
+
+        <PropertyColumn Property="(BooleanProperty x) => x.BooleanWithImages">
+            <CellTemplate>
+                <MudSwitch Color="Color.Primary" @bind-Value="@context.Item.BooleanWithImages" ReadOnly />
+            </CellTemplate>
+        </PropertyColumn>
+
+    </TableColumns>
+</TableView>
+
+@code {
+    [Inject] public required IDialogService dialogService { get; set; }
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    TableView<BooleanProperty> table = new TableView<BooleanProperty>();
+
+    ODataClient oDataClient = default!;
+    List<BooleanProperty>? Users = new();
+    const string apiRouteName = "BooleanProperty";
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+    }
+
+    private async Task<GridData<BooleanProperty>> DataLoad(GridState<BooleanProperty> state)
+    {
+        return await oDataClient.GetMudDataGridDataAsync<BooleanProperty>(apiRouteName, state);
+    }
+
+    async Task HandleAddNew()
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var dialog = await dialogService.ShowExAsync<BooleanForm>("Add", options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+
+    async Task HandleDelete(IEnumerable<BooleanProperty> objects)
+    {
+        foreach (var obj in objects)
+        {
+            await oDataClient.Delete(apiRouteName, obj.Oid);
+        }
+    }
+
+    async Task HandleRowClick(BooleanProperty obj)
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var parameters = new DialogParameters<BooleanForm> { { x => x.Oid, obj.Oid } };
+        var dialog = await dialogService.ShowExAsync<BooleanForm>("Edit", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+}

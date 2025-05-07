@@ -1,0 +1,77 @@
+﻿@page "/dateproperties"
+
+<PageHeader Icon="@Icons.Material.Filled.DateRange" HeaderText="Date Properties" />
+
+<TableView @ref=table
+           TModel="DateProperty"
+           OnTableViewLoadData="DataLoad"
+           OnAddNew="HandleAddNew"
+           OnDelete="HandleDelete"
+           OnRowClick="HandleRowClick">
+    <TableColumns>
+
+        <PropertyColumn Property="(DateProperty x) => x.DateTimeProperty" Format="yyyy/MM/dd" />
+        <PropertyColumn Property="(DateProperty x) => x.DateTimeNullableProperty" Format="yyyy/MM/dd" />
+        <PropertyColumn Property="(DateProperty x) => x.TimeSpanProperty" />
+        <PropertyColumn Property="(DateProperty x) => x.TimeByEditMask" Format="HH:mm:ss" />
+
+    </TableColumns>
+</TableView>
+
+@code {
+    [Inject] public required IDialogService dialogService { get; set; }
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    TableView<DateProperty> table = new TableView<DateProperty>();
+
+    ODataClient oDataClient = default!;
+    List<DateProperty>? Users = new();
+    const string apiRouteName = "DateProperty";
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+    }
+
+    private async Task<GridData<DateProperty>> DataLoad(GridState<DateProperty> state)
+    {
+        return await oDataClient.GetMudDataGridDataAsync<DateProperty>(apiRouteName, state);
+    }
+
+    async Task HandleAddNew()
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var dialog = await dialogService.ShowExAsync<DateForm>("Add", options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+
+    async Task HandleDelete(IEnumerable<DateProperty> objects)
+    {
+        foreach (var obj in objects)
+        {
+            await oDataClient.Delete(apiRouteName, obj.Oid);
+        }
+    }
+
+    async Task HandleRowClick(DateProperty obj)
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var parameters = new DialogParameters<DateForm> { { x => x.Oid, obj.Oid } };
+        var dialog = await dialogService.ShowExAsync<DateForm>("Edit", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+}

@@ -1,0 +1,148 @@
+﻿@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+
+<FormView TModel="FileProperty"
+          FormData="ModelItem"
+          OnSaving="HandleSave"
+          OnRefresh="HandleRefresh">
+    <FormContent>
+
+        <MudField Variant="Variant.Outlined"
+                  Label="Name"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@Icons.Material.Filled.AttachFile"
+                  OnAdornmentClick="OnUploadFileButtonClick">
+            @if (ModelItem.File != null)
+            {
+                <MudLink OnClick="DownloadFile">@ModelItem.File.FileName</MudLink>
+            }
+        </MudField>
+        <MudFileUpload T="IBrowserFile" @ref="fileUpload" FilesChanged="UploadFiles" Hidden="true" />
+
+    </FormContent>
+</FormView>
+
+@code {
+    [Parameter] public Guid Oid { get; set; } = Guid.Empty;
+    [CascadingParameter] public required IMudDialogInstance MudDialog { get; set; }
+    [Inject] public required ISnackbar Snackbar { get; set; }
+
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    FileProperty ModelItem { get; set; } = new();
+
+    ODataClient oDataClient = default!;
+    const string apiRouteName = "FileProperty";
+
+    #region FileUpload
+
+    MudFileUpload<IBrowserFile> fileUpload;
+
+    [Inject]
+    public required IJSRuntime JSRuntime { get; set; }
+
+    #endregion
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+        await OnGetModelItem();
+    }
+
+    async Task HandleSave()
+    {
+        var result = await oDataClient.SaveModelItemAsync<FileProperty>(
+            apiRouteName,
+            Oid != Guid.Empty ? Oid : Guid.Empty,
+            ModelItem
+        );
+        if (result.isSuccess)
+        {
+            if (result.newObject != null)
+            {
+                Oid = result.newObject.Oid;
+                await OnGetModelItem();
+            }
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            var message = !string.IsNullOrEmpty(result.error) ? result.error : "Unkown error!";
+            Snackbar.Add(message, Severity.Error);
+        }
+        StateHasChanged();
+    }
+
+    async Task HandleRefresh()
+    {
+        await OnGetModelItem();
+    }
+
+    private async Task OnGetModelItem()
+    {
+        ModelItem = await oDataClient.GetModelItemByKeyAsync<FileProperty>(
+            apiRouteName,
+            Oid != Guid.Empty ? Oid : Guid.Empty);
+    }
+
+    #region Upload / Download File
+
+    async void DownloadFile()
+    {
+        var fileData = await oDataClient.GetObjectAsync<FileData>("FileData", ModelItem.File.Oid);
+        if (fileData != null && fileData.Content != null)
+        {
+            var ms = new MemoryStream(fileData.Content);
+            using var streamRef = new DotNetStreamReference(stream: ms);
+            await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileData.FileName, streamRef);
+        }
+    }
+
+    async void OnUploadFileButtonClick()
+    {
+        await fileUpload.OpenFilePickerAsync();
+    }
+
+    private async void UploadFiles(IBrowserFile file)
+    {
+        using var ms = new MemoryStream();
+        await file.OpenReadStream().CopyToAsync(ms);
+
+        FileData? fileModel;
+        if (ModelItem.File != null)
+        {
+            fileModel = await oDataClient.GetObjectAsync<FileData>("FileData", ModelItem.File.Oid);
+            if (fileModel != null)
+            {
+                fileModel.FileName = file.Name;
+                fileModel.Content = ms.ToArray();
+                var result = await oDataClient.Update<FileData>("FileData", ModelItem.File.Oid, fileModel);
+                if (result.isSuccess)
+                {
+                    ModelItem.File = fileModel;
+                }
+            }
+        }
+        else
+        {
+            fileModel = new FileData();
+            fileModel.FileName = file.Name;
+            fileModel.Content = ms.ToArray();
+            var result = await oDataClient.Create<FileData>("FileData", fileModel);
+            if (result.isSuccess && result.newObject != null)
+            {
+                fileModel = result.newObject;
+                ModelItem.File = fileModel;
+            }
+        }
+        StateHasChanged();
+    }
+
+    #endregion
+}

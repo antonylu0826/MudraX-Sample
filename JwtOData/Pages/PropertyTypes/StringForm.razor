@@ -1,0 +1,106 @@
+﻿<FormView TModel="StringProperty"
+          FormData="ModelItem"
+          OnSaving="HandleSave"
+          OnRefresh="HandleRefresh">
+    <FormContent>
+
+        <MudTextField Label="DefaultSizeStringProperty"
+                      Variant="Variant.Outlined"
+                      @bind-Value="ModelItem.DefaultSizeStringProperty"
+                      For="@(() => ModelItem.DefaultSizeStringProperty)" />
+
+        <MudTextField Label="UnlimitedSizeStringProperty"
+                      Variant="Variant.Outlined"
+                      Lines="5"
+                      AutoGrow
+                      @bind-Value="ModelItem.UnlimitedSizeStringProperty"
+                      For="@(() => ModelItem.UnlimitedSizeStringProperty)" />
+
+        <MudTextField Label="Url"
+                      Variant="Variant.Outlined"
+                      @bind-Value="ModelItem.Url"
+                      For="@(() => ModelItem.Url)"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.OpenInBrowser" />
+
+        <MudTextField Label="Email"
+                      Variant="Variant.Outlined"
+                      @bind-Value="ModelItem.Email"
+                      For="@(() => ModelItem.Email)"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Mail"
+                      Mask="@(RegexMask.Email())" />
+
+        <MudPasswordField Label="Password"
+                          Variant="Variant.Outlined"
+                          @bind-Value="ModelItem.Password"
+                          For="@(() => ModelItem.Password)">
+        </MudPasswordField>
+
+        <MudTextField Label="IPAddress"
+                      Variant="Variant.Outlined"
+                      @bind-Value="ModelItem.IPAddress"
+                      For="@(() => ModelItem.IPAddress)"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.NetworkPing"
+                      Mask="@(RegexMask.IPv4())" />
+
+    </FormContent>
+</FormView>
+
+
+@code {
+    [Parameter] public Guid Oid { get; set; } = Guid.Empty;
+    [CascadingParameter] public required IMudDialogInstance MudDialog { get; set; }
+    [Inject] public required ISnackbar Snackbar { get; set; }
+
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    StringProperty ModelItem { get; set; } = new();
+
+    ODataClient oDataClient = default!;
+    const string apiRouteName = "StringProperty";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+        await OnGetModelItem();
+    }
+
+    async Task HandleSave()
+    {
+        var result = await oDataClient.SaveModelItemAsync<StringProperty>(
+            apiRouteName,
+            Oid != Guid.Empty ? Oid : Guid.Empty,
+            ModelItem
+        );
+        if (result.isSuccess)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            var message = !string.IsNullOrEmpty(result.error) ? result.error : "Unkown error!";
+            Snackbar.Add(message, Severity.Error);
+        }
+        StateHasChanged();
+    }
+
+    async Task HandleRefresh()
+    {
+        await OnGetModelItem();
+    }
+
+    private async Task OnGetModelItem()
+    {
+        ModelItem = await oDataClient.GetModelItemByKeyAsync<StringProperty>(
+            apiRouteName,
+            Oid != Guid.Empty ? Oid : Guid.Empty);
+    }
+}

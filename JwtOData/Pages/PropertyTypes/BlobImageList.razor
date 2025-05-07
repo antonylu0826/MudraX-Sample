@@ -1,0 +1,83 @@
+﻿@page "/blobimageproperties"
+
+<TableView @ref=table
+           TModel="BlobImageProperty"
+           OnTableViewLoadData="DataLoad"
+           OnAddNew="HandleAddNew"
+           OnDelete="HandleDelete"
+           OnRowClick="HandleRowClick">
+    <TableColumns>
+
+        <PropertyColumn Property="(BlobImageProperty x) => x.ImageProperty">
+            <CellTemplate>
+                @if (context.Item.ImageProperty != null)
+                {
+                    <MudImage Src="@($"data:image/bmp;base64, {Convert.ToBase64String(context.Item.ImageProperty)}")"
+                              Width="200"
+                              Height="200"
+                              Elevation="25"
+                              Class="rounded-lg" />
+                }
+            </CellTemplate>
+        </PropertyColumn>
+
+    </TableColumns>
+</TableView>
+
+@code {
+    [Inject] public required IDialogService dialogService { get; set; }
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    TableView<BlobImageProperty> table = new TableView<BlobImageProperty>();
+
+    ODataClient oDataClient = default!;
+    List<BlobImageProperty>? Users = new();
+    const string apiRouteName = "BlobImageProperty";
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+    }
+
+    private async Task<GridData<BlobImageProperty>> DataLoad(GridState<BlobImageProperty> state)
+    {
+        return await oDataClient.GetMudDataGridDataAsync<BlobImageProperty>(apiRouteName, state);
+    }
+
+    async Task HandleAddNew()
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var dialog = await dialogService.ShowExAsync<BlobImageForm>("Add", options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+
+    async Task HandleDelete(IEnumerable<BlobImageProperty> objects)
+    {
+        foreach (var obj in objects)
+        {
+            await oDataClient.Delete(apiRouteName, obj.Oid);
+        }
+    }
+
+    async Task HandleRowClick(BlobImageProperty obj)
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var parameters = new DialogParameters<BlobImageForm> { { x => x.Oid, obj.Oid } };
+        var dialog = await dialogService.ShowExAsync<BlobImageForm>("Edit", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+}

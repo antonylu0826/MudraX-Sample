@@ -1,0 +1,73 @@
+﻿<FormView TModel="BlobImageProperty"
+          FormData="ModelItem"
+          OnSaving="HandleSave"
+          OnRefresh="HandleRefresh">
+    <FormContent>
+
+        <BlobImageField @bind-Image="@context.ImageProperty" />
+
+    </FormContent>
+</FormView>
+
+
+@code {
+    [Parameter] public Guid Oid { get; set; } = Guid.Empty;
+    [CascadingParameter] public required IMudDialogInstance MudDialog { get; set; }
+    [Inject] public required ISnackbar Snackbar { get; set; }
+
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    BlobImageProperty ModelItem { get; set; } = new();
+
+    ODataClient oDataClient = default!;
+    const string apiRouteName = "BlobImageProperty";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+        await OnGetModelItem();
+    }
+
+    async Task HandleSave()
+    {
+        var result = await oDataClient.SaveModelItemAsync<BlobImageProperty>(
+            apiRouteName,
+            Oid != Guid.Empty ? Oid : Guid.Empty,
+            ModelItem
+        );
+        if (result.isSuccess)
+        {
+            if (result.newObject != null)
+            {
+                Oid = result.newObject.Oid;
+                await OnGetModelItem();
+            }
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            var message = !string.IsNullOrEmpty(result.error) ? result.error : "Unkown error!";
+            Snackbar.Add(message, Severity.Error);
+        }
+        StateHasChanged();
+    }
+
+    async Task HandleRefresh()
+    {
+        await OnGetModelItem();
+    }
+
+    private async Task OnGetModelItem()
+    {
+        ModelItem = await oDataClient.GetModelItemByKeyAsync<BlobImageProperty>(
+            apiRouteName,
+            Oid != Guid.Empty ? Oid : Guid.Empty);
+    }
+
+}

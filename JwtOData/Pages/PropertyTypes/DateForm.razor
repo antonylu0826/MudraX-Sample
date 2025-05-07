@@ -1,0 +1,90 @@
+﻿<FormView TModel="DateProperty"
+          FormData="ModelItem"
+          OnSaving="HandleSave"
+          OnRefresh="HandleRefresh">
+    <FormContent>
+
+        <!-- MudDatePicker 只能綁定 DateTime?，所以如果是 DateTime 只能以 Value 的方式處理 -->
+        <MudDatePicker Label="DateTimeProperty"
+                       Variant="Variant.Outlined"
+                       Date="@(context.DateTimeProperty == DateTime.MaxValue ? null : context.DateTimeProperty)"
+                       DateChanged="(time)=>context.DateTimeProperty=time ?? DateTime.MaxValue" />
+
+        <MudDatePicker Label="DateTimeNullableProperty"
+                       Variant="Variant.Outlined"
+                       @bind-Date="ModelItem.DateTimeNullableProperty" />
+
+        <!-- MudTimePicker 只能綁定 TimeSpan?，所以如果是 String 只能以 Value 轉換的方式處理 -->
+        <MudTimePicker Label="TimeStringProperty"
+                       Variant="Variant.Outlined"
+                       Editable="true"
+                       Time="@(context.TimeSpanProperty == null ? null : TimeSpan.Parse(context.TimeSpanProperty))"
+                       TimeChanged="(time)=>context.TimeSpanProperty=time.ToString()" />
+
+        <!-- MudTimePicker 只能綁定 TimeSpan?，所以如果是 DateTime 只能以 Value 轉換的方式處理 -->
+        <MudTimePicker Label="TimeFromDateTime"
+                       Variant="Variant.Outlined"
+                       Editable="true"
+                       Time="@(context.TimeByEditMask == null ? null : context.TimeByEditMask.Value.TimeOfDay)"
+                       TimeChanged="(time)=>context.TimeByEditMask=(time.HasValue ? DateTime.Today.Add(time.Value) : null)" />
+
+
+    </FormContent>
+</FormView>
+
+
+@code {
+    [Parameter] public Guid Oid { get; set; } = Guid.Empty;
+    [CascadingParameter] public required IMudDialogInstance MudDialog { get; set; }
+    [Inject] public required ISnackbar Snackbar { get; set; }
+
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    DateProperty ModelItem { get; set; } = new();
+
+    ODataClient oDataClient = default!;
+    const string apiRouteName = "DateProperty";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+        await OnGetModelItem();
+    }
+
+    async Task HandleSave()
+    {
+        var result = await oDataClient.SaveModelItemAsync<DateProperty>(
+            apiRouteName,
+            Oid != Guid.Empty ? Oid : Guid.Empty,
+            ModelItem
+        );
+        if (result.isSuccess)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            var message = !string.IsNullOrEmpty(result.error) ? result.error : "Unkown error!";
+            Snackbar.Add(message, Severity.Error);
+        }
+        StateHasChanged();
+    }
+
+    async Task HandleRefresh()
+    {
+        await OnGetModelItem();
+    }
+
+    private async Task OnGetModelItem()
+    {
+        ModelItem = await oDataClient.GetModelItemByKeyAsync<DateProperty>(
+            apiRouteName,
+            Oid != Guid.Empty ? Oid : Guid.Empty);
+    }
+}

@@ -1,0 +1,20 @@
+﻿@inherits LayoutComponentBase
+@attribute [Authorize]
+
+<ApplicationLayout>
+    <ApplcationBar>
+
+        <AppUserMenu />
+
+    </ApplcationBar>
+
+    <DrawerMenu>
+
+        <NavMenu />
+
+    </DrawerMenu>
+
+    <Body>
+        @Body
+    </Body>
+</ApplicationLayout>

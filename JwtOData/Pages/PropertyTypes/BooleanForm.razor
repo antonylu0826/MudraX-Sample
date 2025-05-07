@@ -1,0 +1,77 @@
+﻿<FormView TModel="BooleanProperty"
+          FormData="ModelItem"
+          OnSaving="HandleSave"
+          OnRefresh="HandleRefresh">
+    <FormContent>
+
+        <MudCheckBox Label="DefaultBooleanProperty"
+                     @bind-Value="ModelItem.DefaultBooleanProperty"
+                     For="@(() => ModelItem.DefaultBooleanProperty)" />
+
+        <MudCheckBox Label="BooleanWithCaptions"
+                     @bind-Value="ModelItem.BooleanWithCaptions"
+                     For="@(() => ModelItem.BooleanWithCaptions)" />
+
+        <MudSwitch Label="BooleanWithImages"
+                   @bind-Value="ModelItem.BooleanWithImages"
+                   For="@(() => ModelItem.BooleanWithImages)"
+                   Color="Color.Primary" />
+
+    </FormContent>
+</FormView>
+
+@code {
+    [Parameter] public Guid Oid { get; set; } = Guid.Empty;
+    [CascadingParameter] public required IMudDialogInstance MudDialog { get; set; }
+    [Inject] public required ISnackbar Snackbar { get; set; }
+
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    BooleanProperty ModelItem { get; set; } = new();
+
+    ODataClient oDataClient = default!;
+    const string apiRouteName = "BooleanProperty";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+        await OnGetModelItem();
+    }
+
+    async Task HandleSave()
+    {
+        var result = await oDataClient.SaveModelItemAsync<BooleanProperty>(
+            apiRouteName,
+            Oid != Guid.Empty ? Oid : Guid.Empty,
+            ModelItem
+        );
+        if (result.isSuccess)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            var message = !string.IsNullOrEmpty(result.error) ? result.error : "Unkown error!";
+            Snackbar.Add(message, Severity.Error);
+        }
+        StateHasChanged();
+    }
+
+    async Task HandleRefresh()
+    {
+        await OnGetModelItem();
+    }
+
+    private async Task OnGetModelItem()
+    {
+        ModelItem = await oDataClient.GetModelItemByKeyAsync<BooleanProperty>(
+            apiRouteName,
+            Oid != Guid.Empty ? Oid : Guid.Empty);
+    }
+}

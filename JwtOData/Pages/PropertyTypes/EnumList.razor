@@ -1,0 +1,75 @@
+﻿@page "/enumproperties"
+
+<PageHeader Icon="@Icons.Material.Filled.FormatListNumbered" HeaderText="Enum Properties" />
+
+<TableView @ref=table
+           TModel="EumProperty"
+           OnTableViewLoadData="DataLoad"
+           OnAddNew="HandleAddNew"
+           OnDelete="HandleDelete"
+           OnRowClick="HandleRowClick">
+    <TableColumns>
+
+        <PropertyColumn Property="(EumProperty x) => x.TextOnlyEnumProperty" />
+        <PropertyColumn Property="(EumProperty x) => x.TextAndImageEnumProperty" />
+
+    </TableColumns>
+</TableView>
+
+@code {
+    [Inject] public required IDialogService dialogService { get; set; }
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    TableView<EumProperty> table = new TableView<EumProperty>();
+
+    ODataClient oDataClient = default!;
+    List<EumProperty>? Users = new();
+    const string apiRouteName = "EumProperty";
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+    }
+
+    private async Task<GridData<EumProperty>> DataLoad(GridState<EumProperty> state)
+    {
+        return await oDataClient.GetMudDataGridDataAsync<EumProperty>(apiRouteName, state);
+    }
+
+    async Task HandleAddNew()
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var dialog = await dialogService.ShowExAsync<EnumForm>("Add", options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+
+    async Task HandleDelete(IEnumerable<EumProperty> objects)
+    {
+        foreach (var obj in objects)
+        {
+            await oDataClient.Delete(apiRouteName, obj.Oid);
+        }
+    }
+
+    async Task HandleRowClick(EumProperty obj)
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var parameters = new DialogParameters<EnumForm> { { x => x.Oid, obj.Oid } };
+        var dialog = await dialogService.ShowExAsync<EnumForm>("Edit", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+}

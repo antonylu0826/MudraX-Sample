@@ -1,0 +1,98 @@
+﻿<FormView TModel="NumericProperty"
+          FormData="ModelItem"
+          OnSaving="HandleSave"
+          OnRefresh="HandleRefresh">
+    <FormContent>
+
+        <MudNumericField Label="DoubleProperty"
+                         Variant="Variant.Outlined"
+                         HideSpinButtons="true"
+                         @bind-Value="ModelItem.DoubleProperty"
+                         For="@(() => ModelItem.DoubleProperty)" />
+
+        <MudNumericField Label="SingleProperty"
+                         Variant="Variant.Outlined"
+                         HideSpinButtons="true"
+                         @bind-Value="ModelItem.SingleProperty"
+                         For="@(() => ModelItem.SingleProperty)" />
+
+        <MudNumericField Label="LongProperty"
+                         Variant="Variant.Outlined"
+                         HideSpinButtons="true"
+                         @bind-Value="ModelItem.LongProperty"
+                         For="@(() => ModelItem.LongProperty)" />
+
+        <MudField Label="IntegerProperty" Variant="Variant.Outlined">
+            <MudSlider @bind-Value="ModelItem.IntegerProperty"
+                       ValueLabel="true" Step="10" TickMarks="true" />
+        </MudField>
+
+        <MudNumericField Label="DecimalProperty"
+                         Variant="Variant.Outlined"
+                         HideSpinButtons="true"
+                         @bind-Value="ModelItem.DecimalProperty"
+                         For="@(() => ModelItem.DecimalProperty)" />
+
+        <MudField Label="ByteProperty" Variant="Variant.Outlined">
+            <MudRating @bind-SelectedValue="ModelItem.ByteProperty" />
+        </MudField>
+
+    </FormContent>
+</FormView>
+
+
+@code {
+    [Parameter] public Guid Oid { get; set; } = Guid.Empty;
+    [CascadingParameter] public required IMudDialogInstance MudDialog { get; set; }
+    [Inject] public required ISnackbar Snackbar { get; set; }
+
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    NumericProperty ModelItem { get; set; } = new();
+
+    ODataClient oDataClient = default!;
+    const string apiRouteName = "NumericProperty";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+        await OnGetModelItem();
+    }
+
+    async Task HandleSave()
+    {
+        var result = await oDataClient.SaveModelItemAsync<NumericProperty>(
+            apiRouteName,
+            Oid != Guid.Empty ? Oid : Guid.Empty,
+            ModelItem
+        );
+        if (result.isSuccess)
+        {
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+            var message = !string.IsNullOrEmpty(result.error) ? result.error : "Unkown error!";
+            Snackbar.Add(message, Severity.Error);
+        }
+        StateHasChanged();
+    }
+
+    async Task HandleRefresh()
+    {
+        await OnGetModelItem();
+    }
+
+    private async Task OnGetModelItem()
+    {
+        ModelItem = await oDataClient.GetModelItemByKeyAsync<NumericProperty>(
+            apiRouteName,
+            Oid != Guid.Empty ? Oid : Guid.Empty);
+    }
+}

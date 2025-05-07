@@ -1,0 +1,77 @@
+﻿@page "/stringproperties"
+
+<PageHeader Icon="@Icons.Material.Filled.Translate" HeaderText="String Properties" />
+
+<TableView @ref=table
+           TModel="StringProperty"
+           OnTableViewLoadData="DataLoad"
+           OnAddNew="HandleAddNew"
+           OnDelete="HandleDelete"
+           OnRowClick="HandleRowClick">
+    <TableColumns>
+
+        <PropertyColumn Property="(StringProperty x) => x.DefaultSizeStringProperty" />
+        <PropertyColumn Property="(StringProperty x) => x.Url" />
+        <PropertyColumn Property="(StringProperty x) => x.Email" />
+        <PropertyColumn Property="(StringProperty x) => x.IPAddress" />
+
+    </TableColumns>
+</TableView>
+
+@code {
+    [Inject] public required IDialogService dialogService { get; set; }
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    TableView<StringProperty> table = new TableView<StringProperty>();
+
+    ODataClient oDataClient = default!;
+    List<StringProperty>? Users = new();
+    const string apiRouteName = "StringProperty";
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+    }
+
+    private async Task<GridData<StringProperty>> DataLoad(GridState<StringProperty> state)
+    {
+        return await oDataClient.GetMudDataGridDataAsync<StringProperty>(apiRouteName, state);
+    }
+
+    async Task HandleAddNew()
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var dialog = await dialogService.ShowExAsync<StringForm>("Add", options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+
+    async Task HandleDelete(IEnumerable<StringProperty> objects)
+    {
+        foreach (var obj in objects)
+        {
+            await oDataClient.Delete(apiRouteName, obj.Oid);
+        }
+    }
+
+    async Task HandleRowClick(StringProperty obj)
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var parameters = new DialogParameters<StringForm> { { x => x.Oid, obj.Oid } };
+        var dialog = await dialogService.ShowExAsync<StringForm>("Edit", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+}

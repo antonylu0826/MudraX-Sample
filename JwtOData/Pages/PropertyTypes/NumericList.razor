@@ -1,0 +1,79 @@
+﻿@page "/numericproperties"
+
+<PageHeader Icon="@Icons.Material.Filled.Numbers" HeaderText="Numeric Properties" />
+
+<TableView @ref=table
+           TModel="NumericProperty"
+           OnTableViewLoadData="DataLoad"
+           OnAddNew="HandleAddNew"
+           OnDelete="HandleDelete"
+           OnRowClick="HandleRowClick">
+    <TableColumns>
+
+        <PropertyColumn Property="(NumericProperty x) => x.DoubleProperty" />
+        <PropertyColumn Property="(NumericProperty x) => x.SingleProperty" />
+        <PropertyColumn Property="(NumericProperty x) => x.LongProperty" />
+        <PropertyColumn Property="(NumericProperty x) => x.IntegerProperty" />
+        <PropertyColumn Property="(NumericProperty x) => x.DecimalProperty" />
+        <PropertyColumn Property="(NumericProperty x) => x.ByteProperty" />
+
+    </TableColumns>
+</TableView>
+
+@code {
+    [Inject] public required IDialogService dialogService { get; set; }
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    TableView<NumericProperty> table = new TableView<NumericProperty>();
+
+    ODataClient oDataClient = default!;
+    List<NumericProperty>? Users = new();
+    const string apiRouteName = "NumericProperty";
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+    }
+
+    private async Task<GridData<NumericProperty>> DataLoad(GridState<NumericProperty> state)
+    {
+        return await oDataClient.GetMudDataGridDataAsync<NumericProperty>(apiRouteName, state);
+    }
+
+    async Task HandleAddNew()
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var dialog = await dialogService.ShowExAsync<NumericForm>("Add", options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+
+    async Task HandleDelete(IEnumerable<NumericProperty> objects)
+    {
+        foreach (var obj in objects)
+        {
+            await oDataClient.Delete(apiRouteName, obj.Oid);
+        }
+    }
+
+    async Task HandleRowClick(NumericProperty obj)
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var parameters = new DialogParameters<NumericForm> { { x => x.Oid, obj.Oid } };
+        var dialog = await dialogService.ShowExAsync<NumericForm>("Edit", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+}

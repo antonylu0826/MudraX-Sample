@@ -1,0 +1,81 @@
+﻿@page "/fileproperties"
+
+<PageHeader Icon="@Icons.Material.Filled.AttachFile" HeaderText="File Properties" />
+
+<TableView @ref=table
+           TModel="FileProperty"
+           OnTableViewLoadData="DataLoad"
+           OnAddNew="HandleAddNew"
+           OnDelete="HandleDelete"
+           OnRowClick="HandleRowClick">
+    <TableColumns>
+
+        <PropertyColumn Property="(FileProperty x) => x.File">
+            <CellTemplate>
+                @if (context.Item.File != null)
+                {
+                    @context.Item.File.FileName
+                }
+            </CellTemplate>
+        </PropertyColumn>
+
+    </TableColumns>
+</TableView>
+
+@code {
+    [Inject] public required IDialogService dialogService { get; set; }
+    [Inject] public required ISecureStorage SecureStorage { get; set; }
+    [Inject] public required ODataClientProvider factory { get; set; }
+
+    TableView<FileProperty> table = new TableView<FileProperty>();
+
+    ODataClient oDataClient = default!;
+    List<FileProperty>? Users = new();
+    const string apiRouteName = "FileProperty";
+
+    protected override async Task OnInitializedAsync()
+    {
+        base.OnInitialized();
+        var token = await SecureStorage.GetValueAsync(SecureStorageSchema.AccessToken);
+        if (!string.IsNullOrEmpty(token))
+        {
+            oDataClient = factory.CreateClient("Setting1", token);
+        }
+    }
+
+    private async Task<GridData<FileProperty>> DataLoad(GridState<FileProperty> state)
+    {
+        return await oDataClient.GetMudDataGridDataAsync<FileProperty>(apiRouteName, state);
+    }
+
+    async Task HandleAddNew()
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var dialog = await dialogService.ShowExAsync<FileForm>("Add", options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+
+    async Task HandleDelete(IEnumerable<FileProperty> objects)
+    {
+        foreach (var obj in objects)
+        {
+            await oDataClient.Delete(apiRouteName, obj.Oid);
+        }
+    }
+
+    async Task HandleRowClick(FileProperty obj)
+    {
+        var options = new DialogOptionsEx { Resizeable = true, DragMode = MudDialogDragMode.Simple, AnimateClose = false, };
+        var parameters = new DialogParameters<FileForm> { { x => x.Oid, obj.Oid } };
+        var dialog = await dialogService.ShowExAsync<FileForm>("Edit", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            await table.RefreshData();
+        }
+    }
+}

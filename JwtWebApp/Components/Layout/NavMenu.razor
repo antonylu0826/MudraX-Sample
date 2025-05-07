@@ -1,0 +1,38 @@
+﻿@implements IDisposable
+@inject NavigationManager NavManager
+
+<MudNavMenu Style="display: flex; flex-flow: column; height: inherit;">
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+
+    <MudNavGroup Title="Property Type" Icon="@Icons.Material.Filled.DataObject" Expanded="false">
+        <MudNavLink Href="/blobimageproperties" Icon="@Icons.Material.Filled.Image">BlobImage</MudNavLink>
+        <MudNavLink Href="/booleanproperties" Icon="@Icons.Material.Filled.CheckBox">Boolean</MudNavLink>
+        <MudNavLink Href="/dateproperties" Icon="@Icons.Material.Filled.DateRange">Date</MudNavLink>
+        <MudNavLink Href="/enumproperties" Icon="@Icons.Material.Filled.FormatListNumbered">Enum</MudNavLink>
+        <MudNavLink Href="/fileproperties" Icon="@Icons.Material.Filled.AttachFile">File</MudNavLink>
+        <MudNavLink Href="/numericproperties" Icon="@Icons.Material.Filled.Numbers">Numeric</MudNavLink>
+        <MudNavLink Href="/stringproperties" Icon="@Icons.Material.Filled.Translate">String</MudNavLink>
+    </MudNavGroup>
+</MudNavMenu>
+
+@code {
+    private string? currentUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUrl = NavManager.ToBaseRelativePath(NavManager.Uri);
+        NavManager.LocationChanged += OnLocationChanged;
+        await base.OnInitializedAsync();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavManager.LocationChanged -= OnLocationChanged;
+    }
+}

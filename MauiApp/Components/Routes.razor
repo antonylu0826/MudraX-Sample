@@ -1,0 +1,29 @@
+﻿<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(MauiProgram).Assembly"
+            AdditionalAssemblies="new[]
+                {
+                    typeof(AppUserMenu).Assembly,
+                    typeof(JwtOData.Models.BlobImageProperty).Assembly,
+                }">
+        <Found Context="routeData">
+
+            <CascadingValue Value="routeData">
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)">
+                    <Authorizing>
+                        <p>Determining session state, please wait...</p>
+                    </Authorizing>
+                    <NotAuthorized>
+                        <MudraX.Blazor.Jwt.Maui.Pages.Login />
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+            </CascadingValue>
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+
+        </Found>
+        <NotFound>
+            <LayoutView Layout="@typeof(Layout.MainLayout)">
+                <p>Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
