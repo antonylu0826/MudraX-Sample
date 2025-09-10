@@ -17,9 +17,9 @@
 		</Content>
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="DevExpress.Drawing.Skia" Version="25.1.3" />
-		<PackageReference Include="DevExpress.ExpressApp.Api.Xpo.All" Version="25.1.3" />
-		<PackageReference Include="DevExpress.ExpressApp.CodeAnalysis" Version="25.1.3" />
+		<PackageReference Include="DevExpress.Drawing.Skia" Version="24.2.9" />
+		<PackageReference Include="DevExpress.ExpressApp.Api.Xpo.All" Version="24.2.9" />
+		<PackageReference Include="DevExpress.ExpressApp.CodeAnalysis" Version="24.2.9" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.*" />
 		<PackageReference Include="Microsoft.Data.SqlClient" Version="*" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
