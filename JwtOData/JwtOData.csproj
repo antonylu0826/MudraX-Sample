@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="9.*" />
-    <PackageReference Include="MudraX.Blazor.OData" Version="9.0.0.2" />
+    <PackageReference Include="MudraX.Blazor.OData" Version="9.*" />
   </ItemGroup>
 
 </Project>
